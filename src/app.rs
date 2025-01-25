@@ -22,5 +22,6 @@ pub fn plugin(app: &mut App) {
     });
 
     app.add_plugins((default_plugins, grid::plugin))
+        .insert_resource(Time::<Fixed>::from_hz(2.))
         .add_systems(Startup, setup);
 }

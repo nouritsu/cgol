@@ -1,6 +1,6 @@
 use std::ops::Not;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Cell {
     Dead,
     Alive,

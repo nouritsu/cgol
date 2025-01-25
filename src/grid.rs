@@ -1,7 +1,12 @@
-use crate::app::{WINDOW_HEIGHT, WINDOW_WIDTH};
-use crate::cell::Cell;
-use bevy::prelude::*;
+use crate::{
+    app::{WINDOW_HEIGHT, WINDOW_WIDTH},
+    cell::Cell,
+    colors::Colors,
+    index::Index,
+};
+use bevy::{prelude::*, window::PrimaryWindow};
 use itertools::iproduct;
+use map_range::MapRange;
 
 pub const CELL_SIZE: f32 = 16.;
 
@@ -15,10 +20,7 @@ pub const GRID_HEIGHT: usize = {
     (WINDOW_HEIGHT / CELL_SIZE) as usize
 };
 
-const X_SLOPE: f32 = 0.;
-const Y_SLOPE: f32 = 0.;
-
-#[derive(Resource, Clone)]
+#[derive(Resource, Clone, Debug)]
 pub struct Grid {
     grid: Vec<Vec<Cell>>,
     w: usize,
@@ -111,41 +113,55 @@ impl Grid {
 
 fn setup(
     mut cmd: Commands,
-    grid: Res<Grid>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut colors: ResMut<Assets<ColorMaterial>>,
 ) {
-    let (grid, (w, h)) = (grid.grid(), grid.size());
+    let grid = Grid::new(GRID_WIDTH, GRID_HEIGHT);
+    let (w, h) = grid.size();
+
+    let mut res_colors = Colors::new();
+    res_colors.push(colors.add(Color::srgb(0.1, 0.1, 0.1)));
+    res_colors.push(colors.add(Color::srgb(0.9, 0.9, 0.9)));
 
     for (i, j) in iproduct!(0..w, 0..h) {
-        let mesh = meshes.add(Mesh::from(Rectangle::new(CELL_SIZE - 1., CELL_SIZE - 1.)));
-
-        let cell = grid.get(j).and_then(|row| row.get(i)).unwrap();
-        let color = match cell {
-            Cell::Dead => colors.add(Color::srgb(0.1, 0.1, 0.1)),
-            Cell::Alive => colors.add(Color::srgb(0.9, 0.9, 0.9)),
+        let mesh = {
+            let rec = Rectangle::new(CELL_SIZE - 1., CELL_SIZE - 1.);
+            Mesh2d(meshes.add(Mesh::from(rec)))
         };
 
-        // slope = (output_end - output_start) / (input_end - input_start)
-        // output = output_start + slope * (input - input_start)
-        let transform = {
-            let slope_x = WINDOW_WIDTH / (w as f32);
-            let slope_y = WINDOW_HEIGHT / (h as f32);
+        let material = MeshMaterial2d(res_colors.get(0).expect("infallible"));
 
-            let x = -WINDOW_WIDTH / 2. + slope_x * i as f32;
-            let y = -WINDOW_HEIGHT / 2. + slope_y * j as f32;
+        let transform = {
+            let x_input_start = 0.;
+            let y_input_start = 0.;
+
+            let x_input_end = (w - 1) as f32;
+            let y_input_end = (h - 1) as f32;
+
+            let x_output_start = -WINDOW_WIDTH / 2. + CELL_SIZE;
+            let y_output_start = -WINDOW_HEIGHT / 2. + CELL_SIZE;
+
+            let x_output_end = WINDOW_WIDTH / 2. - CELL_SIZE;
+            let y_output_end = WINDOW_HEIGHT / 2. - CELL_SIZE;
+
+            let x = (i as f32).map_range(x_input_start..x_input_end, x_output_start..x_output_end);
+            let y = (j as f32).map_range(y_input_start..y_input_end, y_output_start..y_output_end);
 
             Transform::from_xyz(x, y, 0.)
         };
 
-        cmd.spawn((Mesh2d(mesh), MeshMaterial2d(color), transform));
+        let index = Index::new(i, j);
+
+        cmd.spawn((mesh, material, transform, index));
     }
+
+    cmd.insert_resource(grid);
+    cmd.insert_resource(res_colors);
 }
 
 fn update(mut grid: ResMut<Grid>) {
     let (w, h) = grid.size();
     let old = grid.clone();
-    grid.clear();
 
     for (i, j) in iproduct!(0..w, 0..h) {
         let neighbors = old.alive_neighbors(i, j);
@@ -158,10 +174,81 @@ fn update(mut grid: ResMut<Grid>) {
     }
 }
 
+fn render(
+    grid: Res<Grid>,
+    colors: Res<Colors>,
+    mut query: Query<(&mut MeshMaterial2d<ColorMaterial>, &Index)>,
+) {
+    for (mut material, &Index(i, j)) in query.iter_mut() {
+        let cell = grid.get(i, j).expect("infallible");
+
+        let color = colors
+            .get(match *cell {
+                Cell::Dead => 0,
+                Cell::Alive => 1,
+            })
+            .expect("infallible");
+
+        *material = MeshMaterial2d(color);
+    }
+}
+
+fn handle_click(
+    buttons: Res<ButtonInput<MouseButton>>,
+    mut grid: ResMut<Grid>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    cells: Query<(&Transform, &Index)>,
+) {
+    if !buttons.pressed(MouseButton::Left) {
+        return;
+    }
+
+    let Some(position) = windows.single().cursor_position() else {
+        return;
+    };
+
+    let position = {
+        let x_input_start = 0.;
+        let y_input_start = 0.;
+
+        let x_input_end = WINDOW_WIDTH;
+        let y_input_end = WINDOW_HEIGHT;
+
+        let x_output_start = -WINDOW_WIDTH / 2.;
+        let y_output_start = WINDOW_HEIGHT / 2.;
+
+        let x_output_end = WINDOW_WIDTH / 2.;
+        let y_output_end = -WINDOW_HEIGHT / 2.;
+
+        let x = position
+            .x
+            .map_range(x_input_start..x_input_end, x_output_start..x_output_end);
+
+        let y = position
+            .y
+            .map_range(y_input_start..y_input_end, y_output_start..y_output_end);
+
+        Vec2::new(x, y)
+    };
+
+    for (transform, index) in cells.iter() {
+        let transform = transform.translation.xy();
+        let Index(i, j) = *index;
+
+        let (x_lb, x_ub) = (transform.x - CELL_SIZE / 2., transform.x + CELL_SIZE / 2.);
+        let (y_lb, y_ub) = (transform.y - CELL_SIZE / 2., transform.y + CELL_SIZE / 2.);
+
+        if (x_lb..x_ub).contains(&position.x) && (y_lb..y_ub).contains(&position.y) {
+            grid.set(i, j, Cell::Alive);
+        }
+    }
+}
+
 pub fn plugin(app: &mut App) {
     let grid = Grid::new(GRID_WIDTH, GRID_HEIGHT);
 
     app.add_systems(Startup, setup)
+        .add_systems(Update, (handle_click, render))
         .add_systems(FixedUpdate, update)
         .insert_resource(grid);
 }
