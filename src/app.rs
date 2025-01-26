@@ -1,6 +1,6 @@
+use crate::{colors::rgb_to_col, grid};
 use bevy::prelude::*;
-
-use crate::grid;
+use catppuccin::PALETTE as palette;
 
 pub const WINDOW_WIDTH: f32 = 640.;
 pub const WINDOW_HEIGHT: f32 = 480.;
@@ -12,7 +12,7 @@ fn setup(mut cmd: Commands) {
 
 pub fn plugin(app: &mut App) {
     let window = Window {
-        title: "cgol".into(),
+        title: "Conway's Game of Life".into(),
         resolution: (WINDOW_WIDTH, WINDOW_HEIGHT).into(),
         ..default()
     };
@@ -24,5 +24,6 @@ pub fn plugin(app: &mut App) {
 
     app.add_plugins((default_plugins, grid::plugin))
         .insert_resource(Time::<Fixed>::from_hz(UPDATE_FREQ))
+        .insert_resource(ClearColor(rgb_to_col(palette.mocha.colors.crust.rgb)))
         .add_systems(Startup, setup);
 }

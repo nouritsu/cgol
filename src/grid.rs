@@ -1,10 +1,11 @@
 use crate::{
     app::{WINDOW_HEIGHT, WINDOW_WIDTH},
     cell::Cell,
-    colors::Colors,
+    colors::{rgb_to_col, Colors},
     index::Index,
 };
 use bevy::{prelude::*, window::PrimaryWindow};
+use catppuccin::PALETTE as palette;
 use itertools::iproduct;
 use map_range::MapRange;
 
@@ -127,8 +128,8 @@ fn setup(
     let (w, h) = grid.size();
 
     let mut res_colors = Colors::new();
-    res_colors.push(colors.add(Color::srgb(0.1, 0.1, 0.1)));
-    res_colors.push(colors.add(Color::srgb(0.9, 0.9, 0.9)));
+    res_colors.push(colors.add(rgb_to_col(palette.mocha.colors.base.rgb)));
+    res_colors.push(colors.add(rgb_to_col(palette.mocha.colors.mauve.rgb)));
 
     for (i, j) in iproduct!(0..w, 0..h) {
         let mesh = {
