@@ -33,4 +33,4 @@ There are several constants that determine the behaviour of the game. Following 
 - `CELL_SIZE` Changes the size of a cell, Units: Pixels\*
 - `BORDER_SIZE` Changes the size of the border of a cell, Units: Pixels
 
-> \*NOTE: The quantity WINDOW_WIDTH / CELL_SIZE and WINDOW_HEIGHT / CELL_SIZE must remain integral values, to avoid scaling issues. If changing the constants leads to a non-integral value for above, the program will fail to compile.
+> \*NOTE: The quantities WINDOW_WIDTH / CELL_SIZE and WINDOW_HEIGHT / CELL_SIZE must remain integral values, to avoid scaling issues. If changing the constants leads to a non-integral value for above, the program will fail to compile.
