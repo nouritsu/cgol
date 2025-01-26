@@ -4,6 +4,7 @@ use crate::grid;
 
 pub const WINDOW_WIDTH: f32 = 640.;
 pub const WINDOW_HEIGHT: f32 = 480.;
+pub const UPDATE_FREQ: f64 = 1.5;
 
 fn setup(mut cmd: Commands) {
     cmd.spawn(Camera2d::default());
@@ -22,6 +23,6 @@ pub fn plugin(app: &mut App) {
     });
 
     app.add_plugins((default_plugins, grid::plugin))
-        .insert_resource(Time::<Fixed>::from_hz(2.))
+        .insert_resource(Time::<Fixed>::from_hz(UPDATE_FREQ))
         .add_systems(Startup, setup);
 }

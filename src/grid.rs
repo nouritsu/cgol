@@ -9,14 +9,21 @@ use itertools::iproduct;
 use map_range::MapRange;
 
 pub const CELL_SIZE: f32 = 16.;
+pub const BORDER_SIZE: f32 = 1.;
 
 pub const GRID_WIDTH: usize = {
-    assert!(WINDOW_WIDTH % CELL_SIZE == 0.);
+    assert!(
+        WINDOW_WIDTH % CELL_SIZE == 0.,
+        "Window width must be divisible by cell size"
+    );
     (WINDOW_WIDTH / CELL_SIZE) as usize
 };
 
 pub const GRID_HEIGHT: usize = {
-    assert!(WINDOW_HEIGHT % CELL_SIZE == 0.);
+    assert!(
+        WINDOW_HEIGHT % CELL_SIZE == 0.,
+        "Window height must be divisible by cell size"
+    );
     (WINDOW_HEIGHT / CELL_SIZE) as usize
 };
 
@@ -125,7 +132,7 @@ fn setup(
 
     for (i, j) in iproduct!(0..w, 0..h) {
         let mesh = {
-            let rec = Rectangle::new(CELL_SIZE - 1., CELL_SIZE - 1.);
+            let rec = Rectangle::new(CELL_SIZE - BORDER_SIZE, CELL_SIZE - BORDER_SIZE);
             Mesh2d(meshes.add(Mesh::from(rec)))
         };
 
