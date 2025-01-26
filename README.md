@@ -2,6 +2,8 @@
 
 A simple [Conway's Game of Life](https://www.wikiwand.com/en/articles/Conway%27s_Game_of_Life) implementation in Rust, using Bevy.
 
+Click to make cells alive and watch it play out!
+
 # Installation
 
 To run, use
